@@ -1,6 +1,6 @@
 <?php
 /* @author: chiasecode
- * @version: 2.0 */
+ * @version: 2.1 */
 
 class SynoFileHostingFshareVN {
     private $Url;
@@ -35,8 +35,13 @@ class SynoFileHostingFshareVN {
     }
     
     public function Verify($ClearCookie) {
-        if(file_exists($this->COOKIE_JAR)) {
+        if($ClearCookie) {
             unlink($this->COOKIE_JAR);
+            unlink($this->TOKEN_FILE);
+        }
+        
+        if(file_exists($this->TOKEN_FILE)) {
+            return USER_IS_PREMIUM;
         }
             
         return $this->performLogin();
@@ -47,54 +52,30 @@ class SynoFileHostingFshareVN {
 
         $this->logInfo("Start getting download info");
 
-        $needLogin = FALSE;
         $this->logInfo("Checking if need to re-login");
         
         $this->Token = $this->getToken();
         if(empty($this->Token)) {
-            $this->logInfo("Token is empty => need to login to get token");
-            $needLogin = TRUE;
-        }
-        
-        if(!file_exists($this->COOKIE_JAR)) {
-            $this->logInfo("Cookie file is not existed => need to login to get cookie");
-            $needLogin = TRUE;
-        }
-
-        if($needLogin) {
-            // login to get authentication info			
-            if($this->Verify(FALSE) === LOGIN_FAIL) {
+            $this->logInfo("Token is empty => need to login to get token");            
+            if($this->Verify(false) === LOGIN_FAIL) {
                 $DownloadInfo[DOWNLOAD_ERROR] = "Login fail!";
                 return $DownloadInfo;
             }    
         }
 
-        $downloadUrl = $this->getLink();
-        $retryNum = 0;
-		// retry 30 times 
-		while ((empty($downloadUrl) || $downloadUrl === "error") && $retryNum < 30){
-			$retryNum++;
-			$this->logInfo("------------------Retry getlink ". $retryNum . " times------------------");			
-			$this->Verify(FALSE);
-			$downloadUrl = $this->getLink();            			
-			sleep (3);
-		}
-		
+        $downloadUrl = $this->getLink();        		
         if(empty($downloadUrl) || $downloadUrl === "error") {
             
             // get link may fail due to use expired token / cookie
-            // => login and retry once
-            if(!$needLogin) {
-                $this->logInfo("Token/Cookie is expired. Login and try once");
-                if($this->Verify(FALSE) === LOGIN_FAIL) {
-                    $DownloadInfo[DOWNLOAD_ERROR] = "Login fail!";
-                    return $DownloadInfo;
-                }
-
-                $downloadUrl = $this->getLink();        
+            // => login and retry once            
+            $this->logInfo("Token/Cookie is expired. Login and try once");
+            if($this->Verify(false) === LOGIN_FAIL) {
+                $DownloadInfo[DOWNLOAD_ERROR] = "Login fail!";
+                return $DownloadInfo;
             }
 
-            $DownloadInfo[DOWNLOAD_ERROR] = "Get link fail";   
+            $downloadUrl = $this->getLink();
+            $DownloadInfo[DOWNLOAD_URL] = $downloadUrl;
         }
         else
         {
@@ -120,40 +101,33 @@ class SynoFileHostingFshareVN {
             "user_email" => $this->Username
         );
 
-        $data_string = json_encode($data);
-
-        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "POST");
+        $data_string = json_encode($data);                
+        curl_setopt($curl, CURLOPT_POST, true);
         curl_setopt($curl, CURLOPT_POSTFIELDS, $data_string);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_COOKIEJAR, $this->COOKIE_JAR);
+        curl_setopt($curl, CURLOPT_COOKIEJAR, $this->COOKIE_JAR);    
 		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
 		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_HTTPHEADER, array(
             "Content-Type: application/json",
-            'Content-Length: ' . strlen($data_string)
+            "User-Agent: Vietmediaf /Kodi1.1.99-092019", 
+            "cache-control: no-cache"            
         ));
-        
-        $retryNum = 0;
-		// retry 30 times 
-		while (($ret === LOGIN_FAIL) && $retryNum < 30){
-			$retryNum++;					
-			$curl_response = curl_exec($curl);
-
-			if(!$this->isOK($curl, $curl_response))
-			{
-				$this->logError("Login error: " . $retryNum . " times");
-			}
-			else
-			{
-				$this->Token = json_decode($curl_response)->{'token'};
-				// save token to disk
-				$this->saveToken($this->Token); 
-				$this->logInfo("Login ok");
-		
-				$ret = USER_IS_PREMIUM;
-			}
-			sleep (2);
-		}
+                			
+        $curl_response = curl_exec($curl);        
+        if(!$this->isOK($curl, $curl_response))
+        {
+            $this->logError("Login error");            
+        }
+        else
+        {
+            $this->Token = json_decode($curl_response)->{'token'};
+            // save token to disk
+            $this->saveToken($this->Token);             
+            $this->logInfo("Login ok");
+    
+            $ret = USER_IS_PREMIUM;
+        }
 
         $this->logInfo("End login");
 
@@ -163,7 +137,7 @@ class SynoFileHostingFshareVN {
         
     }
 
-    private function getLink() {
+    private function getLink($retry = true) {
 
         $ret = "error";
 
@@ -181,8 +155,7 @@ class SynoFileHostingFshareVN {
 
         $data_string = json_encode($data);
 
-
-        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_setopt($curl, CURLOPT_POST, true);
         curl_setopt($curl, CURLOPT_POSTFIELDS, $data_string);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_COOKIEFILE, $this->COOKIE_JAR);
@@ -190,27 +163,29 @@ class SynoFileHostingFshareVN {
 		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_HTTPHEADER, array(
             "Content-Type: application/json",
-            'Content-Length: ' . strlen($data_string)
+            "User-Agent: Vietmediaf /Kodi1.1.99-092019",
+            "cache-control: no-cache"
         ));
         
         $curl_response = curl_exec($curl);
-
+        
         if(!$this->isOK($curl, $curl_response))
         {
             $this->logError("Get link error ");
+            curl_close($curl);
+            if ($retry && $this->performLogin()){
+                return $this->getLink(false);
+            }
         }
         else
         {
             $downloadUrl = json_decode($curl_response)->{'location'};
-
             $this->logInfo("Get link ok");
-
-            $ret = $downloadUrl;
+            $ret = $downloadUrl;            
+            curl_close($curl);
         }
 
-        $this->logInfo("End Get Link");
-
-        curl_close($curl);
+        $this->logInfo("End Get Link");        
 
         return $ret;
     }
@@ -235,7 +210,7 @@ class SynoFileHostingFshareVN {
 
 
     private function getToken() {
-        if(file_exists($this->COOKIE_JAR)) {
+        if(file_exists($this->TOKEN_FILE)) {
             $myfile = fopen($this->TOKEN_FILE, "r");
             $token = fgets($myfile);
             fclose($myfile);
@@ -247,9 +222,7 @@ class SynoFileHostingFshareVN {
         }
     }
 
-    private function isOK($curl, $curl_response) {
-        //$this->logInfo("HTTP Response: " . $curl_response);
-        
+    private function isOK($curl, $curl_response) {            
         if($curl_response === false) {
             return false;
         }
@@ -257,12 +230,6 @@ class SynoFileHostingFshareVN {
         $info = curl_getinfo($curl);
         $this->logInfo("HTTP CODE: " . $info['http_code']);
         if($info['http_code'] !== 200) {
-            return false;
-        }
-
-        $code = json_decode($curl_response)->{'code'};
-        $this->logInfo("CODE: " .$code);
-        if( !empty($code) && $code !== 200) {
             return false;
         }
 
