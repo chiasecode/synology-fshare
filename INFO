@@ -2,9 +2,9 @@
 	"name": "fsharevn",
 	"hostprefix": "fshare.vn",
 	"displayname": "fshare.vn",
-	"version": "2.1",
+	"version": "2.2",
 	"authentication": "yes",
 	"module": "host.php",
 	"class": "SynoFileHostingFshareVN",
-	"description": "Premium Account Supported."
+	"description": "Premium, Free Account Supported."
 }
