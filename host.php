@@ -1,6 +1,6 @@
 <?php
 /* @author: chiasecode
- * @version: 2.2 */
+ * @version: 2.3 */
 
 class SynoFileHostingFshareVN {
     private $Url;
@@ -27,7 +27,7 @@ class SynoFileHostingFshareVN {
         $this->Username = $Username;
         $this->Password = $Password;
 
-        $this->AppId = "dMnqMMZMUnN5YpvKENaEhdQQ5jxDqddt";
+        $this->AppId = "L2S7R6ZMagggC5wWkQhX2+aDi467PPuftWUMRFSn";
 
         $this->HostInfo = $HostInfo;
 
@@ -110,9 +110,7 @@ class SynoFileHostingFshareVN {
 		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_HTTPHEADER, array(
             "Content-Type: application/json",
-            "User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36",
-            "User-Agent: kodivietmediaf-K58W6U",
-            "Authorization: Bearer efdf39c90189ddfbff339ae344c28db5f6c11885",
+            "User-Agent: Vietmediaf /Kodi1.1.99-092019", 
             "cache-control: no-cache"
         ));
                 			
@@ -165,9 +163,7 @@ class SynoFileHostingFshareVN {
 		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_HTTPHEADER, array(
             "Content-Type: application/json",
-            "User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36",
-            "User-Agent: kodivietmediaf-K58W6U",
-            "Authorization: Bearer efdf39c90189ddfbff339ae344c28db5f6c11885",
+            "User-Agent: Vietmediaf /Kodi1.1.99-092019",
             "cache-control: no-cache"
         ));
         
@@ -184,7 +180,7 @@ class SynoFileHostingFshareVN {
         else
         {
             $downloadUrl = json_decode($curl_response)->{'location'};
-            $this->logInfo("Get link ok");
+            $this->logInfo("Get link ok: " . $downloadUrl);
             $ret = $downloadUrl;            
             curl_close($curl);
         }

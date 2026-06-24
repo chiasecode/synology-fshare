@@ -2,7 +2,7 @@
 	"name": "fsharevn",
 	"hostprefix": "fshare.vn",
 	"displayname": "fshare.vn",
-	"version": "2.2",
+	"version": "2.3",
 	"authentication": "yes",
 	"module": "host.php",
 	"class": "SynoFileHostingFshareVN",
